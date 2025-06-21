@@ -80,7 +80,7 @@
   </style>
 </head>
 <body>
-<header contenteditable="true">Ms Unshortener</header>
+<header contenteditable="true">🔗 My Link Unshortener</header>
 <div class="container">
   <div class="section-box">
     <input id="newHeading" placeholder="Heading for your links" />
@@ -121,7 +121,7 @@ if (headingInput && headingInput !== currentHeading) {
 document.getElementById("newOutput").textContent = "⏳ Checking...";
 
 try {
-  const res = await fetch(`https://unshorten.me/json/${encodeURIComponent(shortUrl)}`);
+  const res = await fetch(`https://api.allorigins.win/raw?url=https://unshorten.me/json/${encodeURIComponent(shortUrl)}`);
   const data = await res.json();
   const realUrl = data.resolved_url || await fallbackIframe(shortUrl);
   appendResult(shortUrl, realUrl);
@@ -149,7 +149,7 @@ document.getElementById("shortUrl").value = "";
 
 }
 
-async function fallbackIframe(url) { return new Promise((resolve) => { const iframe = document.getElementById("redirectCatcher"); iframe.src = url; let count = 0; const interval = setInterval(() => { try { const redirected = iframe.contentWindow.location.href; if (redirected && redirected !== url) { clearInterval(interval); resolve(redirected); } } catch (e) { /* Cross-origin block */ } if (++count > 20) { clearInterval(interval); resolve("❌ Not resolved"); } }, 500); }); }
+async function fallbackIframe(url) { return new Promise((resolve) => { const iframe = document.getElementById("redirectCatcher"); iframe.src = url; let count = 0; const interval = setInterval(() => { try { const redirected = iframe.contentWindow.location.href; if (redirected && redirected !== url) { clearInterval(interval); resolve(redirected); } } catch (e) {} if (++count > 20) { clearInterval(interval); resolve("❌ Not resolved"); } }, 500); }); }
 
 function renderHistory() { let display = ""; allResults.forEach(block => { if (block.heading) display += block.heading + "\n"; display += block.links.join("\n"); display += "\n"; }); document.getElementById("output").innerHTML = highlightLinks(display.trim()); }
 
@@ -164,4 +164,4 @@ function clearNewOnly() { newResults = []; document.getElementById("newOutput").
 function exportToFile() { let textContent = ""; allResults.forEach(block => { if (block.heading) textContent += block.heading + "\n"; textContent += block.links.join("\n"); textContent += "\n"; }); const blob = new Blob([textContent.trim()], { type: 'text/plain' }); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = 'link_history.txt'; a.click(); URL.revokeObjectURL(url); } </script>
 
 </body>
-</html>
+  </html>
