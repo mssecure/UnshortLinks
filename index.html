@@ -162,7 +162,10 @@
       let newBlock = currentHeading ? currentHeading + "\n" : "";
       newBlock += newResults.join("\n");
       document.getElementById("newOutput").innerHTML = highlightLinks(newBlock.trim());
-
+      
+      const newOutDiv = document.getElementById("newOutput");
+      newOutDiv.scrollTop = newOutDiv.scrollHeight;
+      
       const newSaveBlock = {
         heading: currentHeading,
         links: [...newResults]
@@ -241,4 +244,4 @@
   }
 </script>
 </body>
-</html>
+  </html>
