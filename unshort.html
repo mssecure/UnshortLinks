@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>My Links - Real Link Unshortener</title>
+  <style>
+    body {
+      background: #0f0f0f;
+      color: #fff;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #1f1f1f;
+      padding: 15px;
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+      border-bottom: 1px solid #333;
+    }
+    .container {
+      padding: 20px;
+    }
+    textarea, input, button {
+      width: 95%;
+      padding: 8px;
+      margin: 8px 0;
+      font-size: 15px;
+      border-radius: 8px;
+      border: none;
+      display: block;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    textarea, input {
+      background: #2c2c2c;
+      color: #fff;
+      resize: vertical;
+    }
+    button {
+      cursor: pointer;
+    }
+    .unshorten-btn { background: #4caf50; color: #fff; }
+    .copy-btn { background: #2196f3; color: #fff; }
+    .clear-btn { background: #f44336; color: #fff; }
+    .export-btn { background: #ff9800; color: #fff; }
+    .section-box {
+      background: #1a1a1a;
+      padding: 15px;
+      border-radius: 10px;
+      margin-top: 20px;
+    }
+    .output-box {
+      background: #2b2b2b;
+      padding: 10px;
+      border-radius: 6px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 300px;
+      overflow-y: auto;
+    }
+    .highlight-url {
+      color: #4fc3f7;
+    }
+    h3 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+<header contenteditable="true">🔗 My Link Unshortener</header>
+<div class="container">
+  <div class="section-box">
+    <input id="newHeading" placeholder="Heading for your links" />
+    <textarea id="shortUrl" placeholder="Paste short link here" rows="1"></textarea>
+    <button class="unshorten-btn" onclick="autoUnshorten()">🔍 Unshorten</button>
+    <div class="output-box" id="newOutput">No new links yet.</div>
+    <div class="actions">
+      <button class="copy-btn" onclick="copyNewOnly()">📋 Copy New</button>
+      <button class="clear-btn" onclick="clearNewOnly()">🧹 Clear New</button>
+    </div>
+  </div>
+
+  <div class="section-box">
+    <h3>📜 Saved History (Fixed)</h3>
+    <div class="output-box" id="output">No links yet.</div>
+    <div class="actions">
+      <button class="copy-btn" onclick="copyAll()">📋 Copy History</button>
+      <button class="clear-btn" onclick="clearAll()">🧹 Clear History</button>
+      <button class="export-btn" onclick="exportToFile()">📁 Export to TXT</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let allResults = [];
+  let newResults = [];
+  let currentHeading = "";
+
+  function highlightLinks(text) {
+    return text.replace(/(https?:\/\/[^\s]+)/g, '<span class="highlight-url">$1</span>');
+  }
+
+  window.onload = function() {
+    allResults = JSON.parse(localStorage.getItem("link_history_arr") || "[]");
+    currentHeading = localStorage.getItem("current_heading") || "";
+    renderHistory();
+  }
+
+  async function autoUnshorten() {
+    const shortUrl = document.getElementById("shortUrl").value.trim();
+    const headingInput = document.getElementById("newHeading").value.trim();
+    if (!shortUrl) return;
+
+    if (headingInput && headingInput !== currentHeading) {
+      currentHeading = headingInput;
+      localStorage.setItem("current_heading", currentHeading);
+      newResults = [];
+    }
+
+    document.getElementById("newOutput").textContent = "⏳ Checking...";
+
+    try {
+      let realUrl = "";
+
+      // Step 1: Try API
+      const apiRes = await fetch(`https://unshorten.me/json/${encodeURIComponent(shortUrl)}`);
+      const apiData = await apiRes.json();
+      if (apiData && apiData.resolved_url && apiData.resolved_url !== shortUrl) {
+        realUrl = apiData.resolved_url;
+      }
+
+      // Step 2: Try HTML meta or JS redirect if API fails
+      if (!realUrl) {
+        const htmlRes = await fetch(shortUrl);
+        const html = await htmlRes.text();
+
+        // Check meta refresh
+        const metaMatch = html.match(/<meta[^>]+http-equiv=["']?refresh["']?[^>]+content=["'][^;]+;\s*url=([^"'>]+)/i);
+        if (metaMatch) realUrl = metaMatch[1];
+
+        // Check JavaScript redirects
+        if (!realUrl) {
+          const jsMatch = html.match(/(?:location\.href|location\.replace)\s*=\s*["']([^"']+)["']/i);
+          if (jsMatch) realUrl = jsMatch[1];
+        }
+      }
+
+      if (!realUrl) realUrl = "❌ Not resolved";
+
+      const newEntry = `Short Link:\n${shortUrl}\nOriginal Link:\n${realUrl}`;
+      newResults.push(newEntry);
+
+      let newBlock = currentHeading ? currentHeading + "\n" : "";
+      newBlock += newResults.join("\n");
+      document.getElementById("newOutput").innerHTML = highlightLinks(newBlock.trim());
+
+      const newSaveBlock = {
+        heading: currentHeading,
+        links: [...newResults]
+      };
+      allResults.unshift(newSaveBlock);
+      localStorage.setItem("link_history_arr", JSON.stringify(allResults));
+      renderHistory();
+      document.getElementById("shortUrl").value = "";
+    } catch (e) {
+      document.getElementById("newOutput").textContent = "❌ Error: Could not unshorten";
+    }
+  }
+
+  function renderHistory() {
+    let display = "";
+    allResults.forEach(block => {
+      if (block.heading) display += block.heading + "\n";
+      display += block.links.join("\n");
+      display += "\n";
+    });
+    document.getElementById("output").innerHTML = highlightLinks(display.trim());
+  }
+
+  function copyAll() {
+    let combined = "";
+    allResults.forEach(block => {
+      if (block.heading) combined += block.heading + "\n";
+      combined += block.links.join("\n");
+      combined += "\n";
+    });
+    navigator.clipboard.writeText(combined.trim()).then(() => {
+      alert("✅ History copied!");
+    });
+  }
+
+  function clearAll() {
+    if (confirm("⚠️ Clear all saved links?")) {
+      allResults = [];
+      newResults = [];
+      currentHeading = "";
+      localStorage.removeItem("link_history_arr");
+      localStorage.removeItem("current_heading");
+      document.getElementById("output").innerHTML = "No links yet.";
+      document.getElementById("newOutput").innerHTML = "No new links yet.";
+    }
+  }
+
+  function copyNewOnly() {
+    if (newResults.length === 0) return;
+    let block = currentHeading ? currentHeading + "\n" : "";
+    block += newResults.join("\n");
+    navigator.clipboard.writeText(block.trim()).then(() => {
+      alert("✅ New links copied!");
+    });
+  }
+
+  function clearNewOnly() {
+    newResults = [];
+    document.getElementById("newOutput").textContent = "No new links yet.";
+  }
+
+  function exportToFile() {
+    let textContent = "";
+    allResults.forEach(block => {
+      if (block.heading) textContent += block.heading + "\n";
+      textContent += block.links.join("\n");
+      textContent += "\n";
+    });
+    const blob = new Blob([textContent.trim()], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'link_history.txt';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real Unshortener (Working Version)</title>
+  <style>
+    body { background: #1e1e1e; color: white; font-family: sans-serif; padding: 20px; }
+    input, button {
+      width: 100%; padding: 10px; margin: 10px 0;
+      font-size: 16px; border: none; border-radius: 6px;
+    }
+    input { background: #333; color: white; }
+    button { background: #4caf50; color: white; }
+    iframe {
+      width: 100%; height: 300px; border: 2px solid #444;
+      border-radius: 8px; margin-top: 15px;
+    }
+    .output { background: #222; padding: 15px; border-radius: 10px; margin-top: 15px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+
+<h2>🔗 Real Link Unshortener (Via Internal Frame)</h2>
+<input id="shortUrl" placeholder="Paste short link here">
+<button onclick="start()">Unshorten</button>
+
+<iframe id="viewer" src=""></iframe>
+
+<div class="output" id="output">⬇️ Output will appear here</div>
+
+<script>
+  let count = 0;
+  let allOutput = "";
+
+  function start() {
+    const url = document.getElementById("shortUrl").value.trim();
+    if (!url) return;
+
+    const toolUrl = "unshorten-frame.html?short=" + encodeURIComponent(url);
+    document.getElementById("viewer").src = toolUrl;
+  }
+
+  window.addEventListener("message", function(e) {
+    if (e.origin !== location.origin) return;
+
+    const { shortUrl, realUrl } = e.data;
+    count++;
+    const entry = `${count}. Short: ${shortUrl}\n   → Real: ${realUrl}\n\n`;
+    allOutput += entry;
+    document.getElementById("output").textContent = allOutput;
+  });
+</script>
+
+</body>
+</html>

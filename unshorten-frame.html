@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Redirect Frame</title>
+</head>
+<body style="margin:0; background:black; color:white; font-family:sans-serif;">
+
+<script>
+  (async function() {
+    const params = new URLSearchParams(location.search);
+    const short = params.get("short");
+
+    try {
+      const response = await fetch(short, { method: "GET", redirect: "follow" });
+      const finalUrl = response.url;
+
+      // Send result back to parent
+      parent.postMessage({
+        shortUrl: short,
+        realUrl: finalUrl
+      }, location.origin);
+
+      // Also show in iframe
+      location.href = finalUrl;
+
+    } catch (e) {
+      parent.postMessage({
+        shortUrl: short,
+        realUrl: "❌ Failed to follow redirect"
+      }, location.origin);
+    }
+  })();
+</script>
+
+</body>
+</html>
